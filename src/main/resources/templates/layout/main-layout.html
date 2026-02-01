@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content, activePage)" lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${activePage} + ' - File Manager'">File Manager</title>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+
+<body class="bg-gray-50 font-sans antialiased" x-data="dashboardApp(window.__DASHBOARD__)" x-init="initDashboard()">
+    <!-- Main Container -->
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+        <!-- Main Content Wrapper -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Header -->
+            <div th:replace="~{fragments/header :: header}"></div>
+
+            <!-- Breadcrumb -->
+            <div th:replace="~{fragments/breadcrumb :: breadcrumb(${activePage})}"></div>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto custom-scrollbar bg-gray-50">
+                <div class="p-6 space-y-8">
+                    <div th:replace="${content}"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div th:replace="~{component/model :: createFolderModal}"></div>
+    <div th:replace="~{component/model :: uploadModal}"></div>
+    <div th:replace="~{component/model :: shareModal}"></div>
+    <div th:replace="~{component/model :: moveModal}"></div>
+    <div th:replace="~{component/model :: filePreviewModal}"></div>
+    <div th:replace="~{component/model :: passwordVerificationModal}"></div>
+    <div th:replace="~{component/model :: passwordModal}"></div>
+
+    <script th:inline="javascript">
+        window.__DASHBOARD__ = /*[[${dashboardViewModel}]]*/ null;
+    </script>
+    <script th:src="@{/js/main.js}"></script>
+</body>
+
+</html>

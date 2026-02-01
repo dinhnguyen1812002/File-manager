@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main-layout :: layout(~{::main-content}, 'My Files')}">
+
+<div th:fragment="main-content">
+    <!-- File List Component -->
+    <div th:replace="~{fragments/file-list-component :: fileList(${subFolders}, ${files}, false)}"></div>
+</div>
+
+</html>

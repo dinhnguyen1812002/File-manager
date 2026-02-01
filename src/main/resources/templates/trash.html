@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main-layout :: layout(~{::main-content}, 'Trash')}">
+
+<div th:fragment="main-content">
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Trash</h2>
+            <p class="text-gray-500">Items in trash will be deleted permanently after 30 days.</p>
+        </div>
+        <div th:if="${not #lists.isEmpty(subFolders) or not #lists.isEmpty(files)}">
+            <form th:action="@{/files/trash/empty}" method="post">
+                <button type="submit"
+                    class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-sm">
+                    <i class="fas fa-trash-alt mr-2"></i>
+                    Empty Trash
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- File List Component -->
+    <div th:replace="~{fragments/file-list-component :: fileList(${subFolders}, ${files}, true)}"></div>
+</div>
+
+</html>

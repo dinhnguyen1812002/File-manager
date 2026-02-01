@@ -1,0 +1,753 @@
+package com.app.file_transfer.controller;
+
+import com.app.file_transfer.model.File;
+import com.app.file_transfer.model.Folder;
+import com.app.file_transfer.model.User;
+import com.app.file_transfer.repository.FileRepository;
+import com.app.file_transfer.repository.FolderRepository;
+import com.app.file_transfer.repository.UserRepository;
+import com.app.file_transfer.dto.DashboardViewModel;
+import com.app.file_transfer.services.DashboardService;
+import com.app.file_transfer.services.FileService;
+import com.app.file_transfer.services.FileStorageService;
+import com.app.file_transfer.services.FolderService;
+import com.app.file_transfer.services.PreviewService;
+import com.app.file_transfer.services.StorageUsageService;
+import org.springframework.core.io.support.ResourceRegion;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import jakarta.servlet.http.HttpSession;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+import org.springframework.core.io.UrlResource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
+import java.util.Map;
+
+@Controller
+@RequestMapping("/files")
+public class FileController {
+
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private FileRepository fileRepository;
+    @Autowired
+    private FileService fileService;
+
+    @Autowired
+    private FolderService folderService;
+
+    @Autowired
+    private FolderRepository folderRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private StorageUsageService storageUsageService;
+
+    @Autowired
+    private PreviewService previewService;
+
+    @Autowired
+    private DashboardService dashboardService;
+
+    @GetMapping("/upload")
+    public String showUploadForm(Model model) {
+        model.addAttribute("file", new File());
+        return "upload";
+    }
+
+    @PostMapping("/upload")
+    public String handleFileUpload(@RequestParam("file") MultipartFile[] files,
+            @RequestParam(value = "folderId", required = false) Long folderId,
+            @AuthenticationPrincipal UserDetails currentUser,
+            RedirectAttributes redirectAttributes) {
+
+        User uploader = userRepository.findByUsername(currentUser.getUsername());
+        Folder parentFolder = null;
+
+        if (folderId != null) {
+            parentFolder = folderRepository.findById(folderId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Folder not found"));
+            if (!parentFolder.getUser().equals(uploader)) {
+                throw new SecurityException("User does not have permission to upload to this folder.");
+            }
+        }
+
+        int successCount = 0;
+
+        for (MultipartFile file : files) {
+            if (file.isEmpty()) {
+                continue;
+            }
+
+            // Check storage limit before uploading
+            if (!storageUsageService.canUploadFile(currentUser.getUsername(), file.getSize())) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Cannot upload " + file.getOriginalFilename() + ". Storage limit exceeded. " +
+                                "Remaining space: " + storageUsageService.formatBytes(
+                                        storageUsageService.getRemainingStorage(currentUser.getUsername())));
+                return "redirect:/files/dashboard" + (folderId != null ? "?folderId=" + folderId : "");
+            }
+
+            String fileName = fileStorageService.storeFile(file);
+
+            File newFile = new File();
+            newFile.setFileName(fileName);
+            newFile.setFileType(file.getContentType());
+            newFile.setFileSize(file.getSize());
+            newFile.setFilePath("uploads/" + fileName);
+            newFile.setUploader(uploader);
+
+            if (parentFolder != null) {
+                newFile.setFolder(parentFolder);
+            }
+
+            fileRepository.save(newFile);
+            successCount++;
+        }
+
+        if (successCount > 0) {
+            redirectAttributes.addFlashAttribute("message", successCount + " file(s) uploaded successfully!");
+        } else {
+            redirectAttributes.addFlashAttribute("error", "No files were uploaded. Please select at least one file.");
+        }
+
+        return "redirect:/files/dashboard" + (folderId != null ? "?folderId=" + folderId : "");
+    }
+
+    @GetMapping("/download/{fileId}")
+    public ResponseEntity<Resource> downloadFile(@PathVariable Long fileId,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        User user = userRepository.findByUsername(currentUser.getUsername());
+        File file = fileRepository.findById(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+
+        if (!file.getRecipients().contains(user) && !file.getUploader().equals(user)) {
+            throw new RuntimeException("You are not authorized to download this file.");
+        }
+
+        Resource resource = fileStorageService.loadFileAsResource(file.getFileName());
+
+        // Set Content-Disposition header with encoded filename
+        String encodedFileName = PreviewService.encodeFilenameForHeader(file.getFileName());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
+                .body(resource);
+    }
+
+    @GetMapping("/send/{fileId}")
+    public String showSendFileForm(@PathVariable Long fileId, Model model,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        User user = userRepository.findByUsername(currentUser.getUsername());
+        File file = fileRepository.findById(fileId).orElseThrow(() -> new RuntimeException("File not found"));
+        if (!file.getUploader().equals(user)) {
+            return "404";
+        }
+        model.addAttribute("file", file);
+        model.addAttribute("users", userRepository.findAll());
+        return "sendFile"; // Returns the Thymeleaf template for sending files
+    }
+
+    // Process the sending of a file to another user
+    @PostMapping("/send/{fileId}")
+    public String sendFile(@PathVariable Long fileId,
+            @RequestParam Long recipientId,
+            RedirectAttributes redirectAttributes,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        // Fetch the current logged-in user
+        User user = userRepository.findByUsername(currentUser.getUsername());
+
+        // Fetch the file and check ownership
+        File file = fileRepository.findById(fileId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found"));
+
+        // Check if the current user is the owner of the file
+        if (!file.getUploader().equals(user)) {
+            // If the user is not the owner, throw a 404 exception
+            return "404";
+        }
+
+        // Fetch the recipient from the database
+        User recipient = userRepository.findById(recipientId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // Add the file to the recipient's received files list and vice versa
+        file.getRecipients().add(recipient);
+        recipient.getReceivedFiles().add(file);
+
+        // Save the updated user and file to the database
+        userRepository.save(recipient);
+        fileRepository.save(file);
+
+        // Add a success message to the redirect attributes
+        redirectAttributes.addFlashAttribute("message", "File sent successfully to " + recipient.getUsername());
+
+        return "redirect:/files/dashboard"; // Redirect back to the dashboard page
+    }
+
+    // @GetMapping("/dashboard")
+    // public String showDashboard(@RequestParam(value = "folderId", required =
+    // false) Long folderId,
+    // Model model,
+    // @AuthenticationPrincipal UserDetails currentUser,
+    // HttpSession session) {
+    // String username = currentUser.getUsername();
+    // User user = userRepository.findByUsername(username);
+
+    // Folder currentFolder = null;
+
+    // if (folderId != null) {
+    // currentFolder = folderRepository.findById(folderId)
+    // .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Folder
+    // not found"));
+    // if (!currentFolder.getUser().equals(user)) {
+    // throw new SecurityException("User does not have permission to access this
+    // folder.");
+    // }
+
+    // // Check if folder is password protected
+    // if (currentFolder.getPassword() != null &&
+    // !currentFolder.getPassword().isEmpty()) {
+    // // Check if user has already entered the correct password
+    // String unlockStatus = (String) session.getAttribute("folder_" + folderId +
+    // "_unlocked");
+
+    // if (!"true".equals(unlockStatus)) {
+    // // User hasn't entered password yet, show password form
+    // model.addAttribute("passwordProtectedFolder", currentFolder);
+    // model.addAttribute("parentFolder", currentFolder.getParent());
+    // return "folder_password";
+    // }
+    // }
+    // }
+
+    // List<Folder> subFolders = folderService.getSubFolders(folderId, username);
+    // List<File> files = (currentFolder == null)
+    // ? fileRepository.findByUploaderAndFolderIsNull(user)
+    // : fileRepository.findByUploaderAndFolder(user, currentFolder);
+
+    // model.addAttribute("currentFolder", currentFolder);
+    // model.addAttribute("subFolders", subFolders);
+    // model.addAttribute("files", files);
+    // System.out.println(files);
+    // return "dashboard";
+    // }
+    @GetMapping("/dashboard")
+    public String showDashboard(@RequestParam(value = "folderId", required = false) Long folderId,
+            Model model,
+            @AuthenticationPrincipal UserDetails currentUser,
+            HttpSession session) {
+        String username = currentUser.getUsername();
+        User user = userRepository.findByUsername(username);
+
+        Folder currentFolder = null;
+
+        if (folderId != null) {
+            currentFolder = folderRepository.findById(folderId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Folder not found"));
+            if (!currentFolder.getUser().equals(user)) {
+                throw new SecurityException("User does not have permission to access this folder.");
+            }
+
+            // Check if folder is password protected
+            if (currentFolder.getPassword() != null && !currentFolder.getPassword().isEmpty()) {
+                // Check if user has already entered the correct password
+                Boolean unlockStatus = (Boolean) session.getAttribute("folder_" + folderId + "_unlocked");
+
+                if (!Boolean.TRUE.equals(unlockStatus)) {
+                    // User hasn't entered password yet, show password form
+                    model.addAttribute("passwordProtectedFolder", currentFolder);
+                    model.addAttribute("parentFolder", currentFolder.getParent());
+                    return "folder_password";
+                }
+            }
+        }
+
+        List<Folder> subFolders = folderService.getSubFolders(folderId, username);
+        List<File> files = (currentFolder == null)
+                ? fileRepository.findByUploaderAndFolderIsNull(user)
+                : fileRepository.findByUploaderAndFolder(user, currentFolder);
+
+        List<File> receivedFiles = fileRepository.findByRecipientsContains(user);
+
+        // Get all folders for move modal
+        List<Folder> allFolders = folderRepository.findByUser(user);
+
+        model.addAttribute("currentFolder", currentFolder);
+        model.addAttribute("subFolders", subFolders);
+        model.addAttribute("files", files);
+        model.addAttribute("receivedFiles", receivedFiles);
+        model.addAttribute("allFolders", allFolders);
+        model.addAttribute("folders", allFolders);
+        model.addAttribute("users", userRepository.findAll()); // For share modal
+        model.addAttribute("activePage", "Dashboard");
+
+        try {
+            DashboardViewModel dashboardViewModel = dashboardService.buildDashboard(username);
+            model.addAttribute("dashboardViewModel", dashboardViewModel);
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("dashboardError", ex.getMessage());
+        }
+
+        return "dashboard";
+    }
+
+    @PostMapping("/folders/create")
+    public String createFolder(@RequestParam String folderName,
+            @RequestParam(value = "parentId", required = false) Long parentId,
+            @AuthenticationPrincipal UserDetails currentUser,
+            @RequestParam(value = "password", required = false) String password,
+            RedirectAttributes redirectAttributes) {
+        try {
+            folderService.createFolder(folderName, parentId, currentUser.getUsername(), password);
+            redirectAttributes.addFlashAttribute("message", "Folder '" + folderName + "' created successfully.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        } catch (SecurityException e) {
+            redirectAttributes.addFlashAttribute("error", "You don't have permission to create a folder here.");
+        }
+        return "redirect:/files/dashboard" + (parentId != null ? "?folderId=" + parentId : "");
+    }
+
+    @PostMapping("/move/{fileId}")
+    public String moveFile(@PathVariable Long fileId,
+            @RequestParam(value = "targetFolderId", required = false) String targetFolderIdStr,
+            @AuthenticationPrincipal UserDetails currentUser,
+            RedirectAttributes redirectAttributes) {
+        try {
+            // Handle the case where targetFolderId is sent as "null" string or empty
+            Long targetFolderId = null;
+            if (targetFolderIdStr != null && !targetFolderIdStr.trim().isEmpty() && !"null".equals(targetFolderIdStr)) {
+                try {
+                    targetFolderId = Long.parseLong(targetFolderIdStr);
+                } catch (NumberFormatException e) {
+                    redirectAttributes.addFlashAttribute("error", "Invalid folder ID format.");
+                    return "redirect:/files/dashboard";
+                }
+            }
+
+            fileService.moveFile(fileId, targetFolderId, currentUser.getUsername());
+            redirectAttributes.addFlashAttribute("message", "File moved successfully!");
+        } catch (SecurityException e) {
+            redirectAttributes.addFlashAttribute("error", "You don't have permission to move this file.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "An error occurred while moving the file.");
+        }
+
+        // Redirect back to current folder or dashboard
+        Long targetFolderId = null;
+        if (targetFolderIdStr != null && !targetFolderIdStr.trim().isEmpty() && !"null".equals(targetFolderIdStr)) {
+            try {
+                targetFolderId = Long.parseLong(targetFolderIdStr);
+            } catch (NumberFormatException e) {
+                // Ignore parsing error for redirect, just go to dashboard
+            }
+        }
+
+        if (targetFolderId != null) {
+            return "redirect:/files/dashboard?folderId=" + targetFolderId;
+        } else {
+            return "redirect:/files/dashboard";
+        }
+    }
+    // @GetMapping("/list")
+    // public String listAllFile(@AuthenticationPrincipal UserDetails user, Model
+    // model){
+    // List<File> uploadedFiles =
+    // fileService.getFilesUploadedByUser(user.getUsername());
+    //
+    // List<File> receivedFiles =
+    // fileService.getFilesReceivedByUser(user.getUsername());
+    //
+    // model.addAttribute("uploadedFiles",uploadedFiles );
+    //
+    // model.addAttribute("receivedFiles",receivedFiles );
+    //
+    // return "fileList";
+    // }
+
+    @PostMapping("/download-multiple")
+    public ResponseEntity<Resource> downloadMultipleFiles(@RequestParam("fileIds") List<Long> id,
+            @AuthenticationPrincipal UserDetails currentUser) throws IOException {
+        User user = userRepository.findByUsername(currentUser.getUsername());
+
+        if (id == null || id.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No files selected for download");
+        }
+
+        // If only one file is selected, redirect to the single file download endpoint
+        if (id.size() == 1) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "/files/download/" + id.get(0))
+                    .build();
+        }
+
+        // Create a temporary zip file
+        Path tempFile = Files.createTempFile("download_", ".zip");
+
+        try (ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(tempFile.toFile()))) {
+            for (Long fileId : id) {
+                File file = fileRepository.findById(fileId)
+                        .orElseThrow(
+                                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found: " + fileId));
+
+                // Check if user has permission to download this file
+                if (!file.getRecipients().contains(user) && !file.getUploader().equals(user)) {
+                    continue; // Skip files the user doesn't have permission to download
+                }
+
+                Resource resource = fileStorageService.loadFileAsResource(file.getFileName());
+
+                // Add file to zip
+                ZipEntry zipEntry = new ZipEntry(file.getFileName());
+                zipOut.putNextEntry(zipEntry);
+
+                byte[] bytes = Files.readAllBytes(resource.getFile().toPath());
+                zipOut.write(bytes, 0, bytes.length);
+                zipOut.closeEntry();
+            }
+        }
+
+        // Create a resource from the zip file
+        Resource zipResource = new UrlResource(tempFile.toUri());
+
+        // Set up the response
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"files.zip\"")
+                .header(HttpHeaders.CONTENT_TYPE, "application/zip")
+                .body(zipResource);
+    }
+
+    @PostMapping("/folders/password")
+    public String setFolderPassword(@RequestParam String folderId,
+            @RequestParam String password,
+            @AuthenticationPrincipal UserDetails currentUser,
+            RedirectAttributes redirectAttributes) {
+        try {
+            Long folderIdLong = Long.parseLong(folderId);
+            folderService.setFolderPassword(folderIdLong, password, currentUser.getUsername());
+            redirectAttributes.addFlashAttribute("message", "Folder password set successfully.");
+
+            Folder folder = folderRepository.findById(folderIdLong)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Folder not found"));
+
+            Long parentId = folder.getParent() != null ? folder.getParent().getId() : null;
+            return "redirect:/files/dashboard" + (parentId != null ? "?folderId=" + parentId : "");
+        } catch (NumberFormatException e) {
+            redirectAttributes.addFlashAttribute("error", "Invalid folder ID format");
+            return "redirect:/files/dashboard";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/files/dashboard";
+        }
+    }
+
+    @PostMapping("/folders/verify-password")
+    public String verifyFolderPassword(@RequestParam String folderId,
+            @RequestParam String password,
+            RedirectAttributes redirectAttributes,
+            HttpSession session) {
+        try {
+            Long folderIdLong = Long.parseLong(folderId);
+            boolean isValid = folderService.verifyFolderPassword(folderIdLong, password);
+
+            if (isValid) {
+                // Store in session that this folder has been unlocked
+                session.setAttribute("folder_" + folderIdLong + "_unlocked", Boolean.TRUE);
+                return "redirect:/files/dashboard?folderId=" + folderIdLong;
+            } else {
+                // Redirect back with error and folder info to reopen modal
+                redirectAttributes.addFlashAttribute("passwordError", "Invalid password");
+                redirectAttributes.addFlashAttribute("errorFolderId", folderIdLong);
+                
+                // Get folder name for modal
+                Folder folder = folderRepository.findById(folderIdLong).orElse(null);
+                if (folder != null) {
+                    redirectAttributes.addFlashAttribute("errorFolderName", folder.getName());
+                }
+                
+                return "redirect:/files/dashboard";
+            }
+        } catch (NumberFormatException e) {
+            redirectAttributes.addFlashAttribute("error", "Invalid folder ID format");
+            return "redirect:/files/dashboard";
+        }
+    }
+
+    @PostMapping("/folders/verify-password-ajax")
+    @ResponseBody
+    public ResponseEntity<?> verifyFolderPasswordAjax(@RequestParam String folderId,
+            @RequestParam String password,
+            HttpSession session) {
+        try {
+            Long folderIdLong = Long.parseLong(folderId);
+            boolean isValid = folderService.verifyFolderPassword(folderIdLong, password);
+
+            if (isValid) {
+                // Store in session that this folder has been unlocked
+                session.setAttribute("folder_" + folderIdLong + "_unlocked", Boolean.TRUE);
+                return ResponseEntity.ok()
+                        .body(Map.of("success", true, "redirectUrl", "/files/dashboard?folderId=" + folderIdLong));
+            } else {
+                return ResponseEntity.ok().body(Map.of("success", false, "error", "Invalid password"));
+            }
+        } catch (NumberFormatException e) {
+            return ResponseEntity.ok().body(Map.of("success", false, "error", "Invalid folder ID format"));
+        }
+    }
+
+    // Delete a file
+    @GetMapping("/delete/{id}")
+    public String deleteFile(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal UserDetails currentUser,
+            RedirectAttributes redirectAttributes) {
+        try {
+            // Let service handle everything and return parent folder ID for redirection
+            Long folderId = fileService.deleteFileAndGetParentId(id, currentUser.getUsername());
+
+            redirectAttributes.addFlashAttribute("message", "File deleted successfully.");
+            return "redirect:/files/dashboard" + (folderId != null ? "?folderId=" + folderId : "");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/files/dashboard";
+        }
+    }
+
+    // Delete multiple files
+    @PostMapping("/delete-multiple")
+    public String deleteMultipleFiles(@RequestParam("id") List<Long> id,
+            @AuthenticationPrincipal UserDetails currentUser,
+            RedirectAttributes redirectAttributes) {
+        Long folderId = null;
+
+        try {
+
+            folderId = null;
+            if (!id.isEmpty()) {
+                File file = fileRepository.findById(id.get(0)).orElse(null);
+                if (file != null && file.getFolder() != null) {
+                    folderId = file.getFolder().getId();
+                }
+            }
+
+            fileService.deleteFiles(id, currentUser.getUsername());
+            redirectAttributes.addFlashAttribute("message", "Files deleted successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/files/dashboard" + (folderId != null ? "?folderId=" + folderId : "");
+    }
+
+    // Delete a folder
+    @PostMapping("/folders/delete")
+    public String deleteFolder(@RequestParam String folderId,
+            @AuthenticationPrincipal UserDetails currentUser,
+            RedirectAttributes redirectAttributes) {
+        try {
+            Long folderIdLong = Long.parseLong(folderId);
+
+            // Let service handle everything and return parent ID for redirection
+            Long parentId = folderService.deleteFolderAndGetParentId(folderIdLong, currentUser.getUsername());
+
+            redirectAttributes.addFlashAttribute("message", "Folder deleted successfully.");
+            return "redirect:/files/dashboard" + (parentId != null ? "?folderId=" + parentId : "");
+        } catch (NumberFormatException e) {
+            redirectAttributes.addFlashAttribute("error", "Invalid folder ID format");
+            return "redirect:/files/dashboard";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/files/dashboard";
+        }
+    }
+
+    // Preview a file
+    @GetMapping("/preview/{fileId}")
+    public ResponseEntity<Resource> previewFile(@PathVariable Long fileId,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        return previewService.generatePreviewResponse(fileId, currentUser.getUsername());
+    }
+
+    // Get file metadata for preview
+    @GetMapping("/api/preview/{fileId}/metadata")
+    @ResponseBody
+    public ResponseEntity<?> getFileMetadata(@PathVariable Long fileId,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        try {
+            System.out.println("=== GET FILE METADATA FOR PREVIEW ===");
+            System.out.println("FileId: " + fileId);
+            System.out.println("User: " + currentUser.getUsername());
+
+            Map<String, Object> metadata = previewService.getFileMetadata(fileId, currentUser.getUsername());
+            System.out.println("Metadata retrieved: " + metadata);
+            return ResponseEntity.ok(metadata);
+        } catch (SecurityException e) {
+            System.err.println("Security error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "You don't have permission to access this file"));
+        } catch (IllegalArgumentException e) {
+            System.err.println("Not found error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            System.err.println("Server error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An error occurred while retrieving file metadata"));
+        }
+    }
+
+    // Get preview info for a file
+    @GetMapping("/api/preview/{fileId}/info")
+    @ResponseBody
+    public ResponseEntity<?> getPreviewInfo(@PathVariable Long fileId,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        try {
+            System.out.println("=== GET PREVIEW INFO ===");
+            System.out.println("FileId: " + fileId);
+            System.out.println("User: " + currentUser.getUsername());
+
+            PreviewService.PreviewInfo previewInfo = previewService.getPreviewInfo(fileId, currentUser.getUsername());
+            System.out.println("Preview info retrieved: " + previewInfo);
+            System.out.println("Preview URL: " + previewInfo.getPreviewUrl());
+            System.out.println("Preview type: " + previewInfo.getPreviewType());
+            return ResponseEntity.ok(previewInfo);
+        } catch (SecurityException e) {
+            System.err.println("Security error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "You don't have permission to preview this file"));
+        } catch (IllegalArgumentException e) {
+            System.err.println("Bad request error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            System.err.println("Server error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An error occurred while generating preview"));
+        }
+    }
+
+    // Stream a video
+    @GetMapping("/stream/{fileId}")
+    public ResponseEntity<Resource> streamVideo(@PathVariable Long fileId,
+            @RequestHeader(value = "Range", required = false) String rangeHeader,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        try {
+
+            File file = fileRepository.findById(fileId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found"));
+            User user = userRepository.findByUsername(currentUser.getUsername());
+
+            if (!file.getUploader().equals(user) && !file.getRecipients().contains(user)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "You don't have permission to stream this file.");
+            }
+
+            if (!fileStorageService.isStreamableVideo(file.getFileName())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This file is not a streamable video.");
+            }
+
+            Resource resource = fileStorageService.loadFileAsResource(file.getFileName());
+            Path filePath = Paths.get(resource.getURI());
+            long fileSize = Files.size(filePath);
+            MediaType mediaType = fileStorageService.getMediaTypeForFileName(file.getFileName());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(mediaType);
+
+            // Properly encode filename for Content-Disposition header to handle Unicode
+            // characters
+            String encodedFileName = PreviewService.encodeFilenameForHeader(file.getFileName());
+            headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encodedFileName);
+
+            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+                System.out.println("Processing range request: " + rangeHeader);
+                String[] ranges = rangeHeader.replace("bytes=", "").split("-");
+                long start = Long.parseLong(ranges[0]);
+                long end = ranges.length > 1 && !ranges[1].isEmpty() ? Long.parseLong(ranges[1]) : fileSize - 1;
+
+                if (start >= fileSize || end >= fileSize || start > end) {
+                    throw new ResponseStatusException(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE, "Invalid range");
+                }
+
+                long contentLength = end - start + 1;
+                headers.set(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileSize);
+                headers.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+                headers.setContentLength(contentLength);
+
+                ResourceRegion resourceRegion = new ResourceRegion(resource, start, contentLength);
+
+                return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                        .headers(headers)
+                        .body(resourceRegion.getResource());
+            }
+
+            headers.setContentLength(fileSize);
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(resource);
+        } catch (IOException e) {
+            // Check if it's a client disconnect (common during video streaming)
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && (errorMessage.contains("Connection reset by peer") ||
+                    errorMessage.contains("Broken pipe") ||
+                    errorMessage.contains("connection was aborted") ||
+                    errorMessage.contains("ClientAbortException"))) {
+
+                // Log as debug level since client disconnects are normal
+                System.out.println("Client disconnected during video streaming for file: " + fileId);
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            }
+
+            // For other IO errors, log and return server error
+            System.err.println("IO Error streaming file " + fileId + ": " + errorMessage);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error streaming file");
+        } catch (Exception e) {
+            System.err.println("Unexpected error streaming file " + fileId + ": " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error streaming file");
+        }
+    }
+
+    // Test endpoint for video player
+    @GetMapping("/video-test")
+    public String videoTest() {
+        return "video-test";
+    }
+
+    // Utility method to get file extension
+    private String getFileExtension(String fileName) {
+        if (fileName == null || fileName.isEmpty()) {
+            return "";
+        }
+        int dotIndex = fileName.lastIndexOf('.');
+        return dotIndex > 0 ? fileName.substring(dotIndex + 1).toLowerCase() : "";
+    }
+}

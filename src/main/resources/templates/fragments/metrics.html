@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- Dashboard Metrics -->
+<section th:fragment="metrics" class="grid grid-cols-1 md:grid-cols-3 gap-6"
+    th:if="${dashboardViewModel != null and dashboardViewModel.metrics != null}">
+    <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-500">Total Files</p>
+        <p class="text-2xl font-semibold text-gray-900" th:text="${dashboardViewModel.metrics.totalFiles}">0</p>
+        <p class="text-xs text-gray-400">Updated just now</p>
+    </div>
+    <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-500">Folders</p>
+        <p class="text-2xl font-semibold text-gray-900" th:text="${dashboardViewModel.metrics.totalFolders}">0</p>
+        <p class="text-xs text-gray-400">Across your workspace</p>
+    </div>
+    <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+        <p class="text-sm text-gray-500">Shared Files</p>
+        <p class="text-2xl font-semibold text-gray-900" th:text="${dashboardViewModel.metrics.sharedFiles}">0</p>
+        <p class="text-xs text-gray-400">With collaborators</p>
+    </div>
+</section>
+
+</html>

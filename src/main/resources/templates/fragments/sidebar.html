@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<aside th:fragment="sidebar" class="sidebar-transition bg-white border-r border-gray-200 flex flex-col"
+    :class="sidebarCollapsed ? 'w-20' : 'w-64'">
+    <!-- Logo & Toggle -->
+    <div class="h-16 flex items-center justify-between px-4 border-b border-gray-200">
+        <div x-show="!sidebarCollapsed" class="flex items-center space-x-3">
+            <div
+                class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-cloud text-white text-xl"></i>
+            </div>
+            <span class="text-xl font-bold text-gray-900">FileHub</span>
+        </div>
+        <button @click="sidebarCollapsed = !sidebarCollapsed" class="p-2 hover:bg-gray-100 rounded-lg">
+            <i class="fas" :class="sidebarCollapsed ? 'fa-bars' : 'fa-times'"></i>
+        </button>
+    </div>
+
+    <!-- Storage Usage -->
+    <div x-show="!sidebarCollapsed" class="p-4 border-b border-gray-200"
+        th:if="${dashboardViewModel != null and dashboardViewModel.metrics != null}">
+        <div class=" rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700">Storage</span>
+                <span class="text-xs text-gray-500"
+                    th:text="${#numbers.formatDecimal(dashboardViewModel.metrics.storageUsagePercentage, 1, 0)} + '%'">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full"
+                    th:style="'width: ' + ${dashboardViewModel.metrics.storageUsagePercentage} + '%'"></div>
+            </div>
+            <p class="text-xs text-gray-600"
+                th:text="${dashboardViewModel.metrics.storageUsed} + ' of ' + ${dashboardViewModel.metrics.storageLimit} + ' used'">
+                0 B of 10 GB used
+            </p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-1">
+        <a th:href="@{/files/dashboard}"
+            th:classappend="${activePage == 'Dashboard' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'hover:bg-gray-100 text-gray-700'}"
+            class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors">
+            <i class="fas fa-home w-5"></i>
+            <span x-show="!sidebarCollapsed">Dashboard</span>
+        </a>
+
+        <a th:href="@{/files/my-files}"
+            th:classappend="${activePage == 'My Files' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'hover:bg-gray-100 text-gray-700'}"
+            class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors">
+            <i class="fas fa-folder w-5"></i>
+            <span x-show="!sidebarCollapsed">My Files</span>
+        </a>
+
+        <a th:href="@{/files/shared}"
+            th:classappend="${activePage == 'Shared Files' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'hover:bg-gray-100 text-gray-700'}"
+            class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors">
+            <i class="fas fa-share-alt w-5"></i>
+            <span x-show="!sidebarCollapsed">Shared</span>
+        </a>
+
+        <a href="#"
+            class="flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors">
+            <i class="fas fa-clock w-5"></i>
+            <span x-show="!sidebarCollapsed">Recent</span>
+        </a>
+
+        <a href="#"
+            class="flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors">
+            <i class="fas fa-star w-5"></i>
+            <span x-show="!sidebarCollapsed">Favorites</span>
+        </a>
+
+        <a th:href="@{/files/trash}"
+            th:classappend="${activePage == 'Trash' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'hover:bg-gray-100 text-gray-700'}"
+            class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors">
+            <i class="fas fa-trash w-5"></i>
+            <span x-show="!sidebarCollapsed">Trash</span>
+        </a>
+    </nav>
+
+    <!-- User Profile -->
+    <div class="p-4 border-t border-gray-200" th:with="user=${#authentication.principal}">
+        <div class="flex items-center space-x-3">
+            <img th:src="${user.avatar != null ? '/uploads/avatars/' + user.avatar : 'https://ui-avatars.com/api/?name=' + user.username + '&background=4F46E5&color=fff'}"
+                class="w-10 h-10 rounded-full object-cover" th:alt="${user.username}">
+            <div x-show="!sidebarCollapsed" class="flex-1">
+                <p class="text-sm font-medium text-gray-900" th:text="${user.username}">User Name</p>
+                <p class="text-xs text-gray-500" th:text="${user.email}">user@example.com</p>
+            </div>
+        </div>
+    </div>
+</aside>
+
+</html>
