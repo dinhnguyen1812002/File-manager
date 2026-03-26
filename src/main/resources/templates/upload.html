@@ -9,7 +9,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
     <style>
         .drag-over {
-            @apply border-indigo-500 bg-indigo-50;
+            @apply border-green-500 bg-green-50;
         }
         .file-preview-item {
             transition: all 0.3s ease;
@@ -27,7 +27,7 @@
 
 <!-- Demo Button -->
 <div class="text-center mb-8">
-    <button onclick="showUploadModal()" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors">
+    <button onclick="showUploadModal()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
         Open Upload Modal
     </button>
 </div>
@@ -38,8 +38,8 @@
         <!-- Modal Header -->
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-cloud-upload-alt text-indigo-600 text-lg"></i>
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-cloud-upload-alt text-green-600 text-lg"></i>
                 </div>
                 <div>
                     <h3 class="text-xl font-semibold text-gray-900">Upload Files</h3>
@@ -59,8 +59,8 @@
                 <!-- Drag & Drop Area -->
                 <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-400 transition-colors cursor-pointer bg-gray-50 hover:bg-gray-100">
                     <div class="space-y-4">
-                        <div class="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-cloud-upload-alt text-indigo-600 text-2xl"></i>
+                        <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-cloud-upload-alt text-green-600 text-2xl"></i>
                         </div>
                         <div>
                             <h4 class="text-lg font-medium text-gray-900">Drop files here to upload</h4>
@@ -103,7 +103,7 @@
                         <span class="text-sm text-gray-500" id="progressPercent">0%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div id="progressBar" class="bg-indigo-600 h-2 rounded-full upload-progress" style="width: 0%"></div>
+                        <div id="progressBar" class="bg-green-600 h-2 rounded-full upload-progress" style="width: 0%"></div>
                     </div>
                 </div>
 
@@ -112,7 +112,7 @@
                     <button type="button" onclick="hideUploadModal()" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
                         Cancel
                     </button>
-                    <button type="button" id="uploadBtn" onclick="uploadFiles()" disabled class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                    <button type="button" id="uploadBtn" onclick="uploadFiles()" disabled class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
                         Upload Files
                     </button>
                 </div>

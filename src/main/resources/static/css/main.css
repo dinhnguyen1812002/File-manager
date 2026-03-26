@@ -8,10 +8,10 @@
    ======================================== */
 :root {
     /* Colors */
-    --color-primary: #4F46E5;
-    --color-primary-hover: #4338CA;
-    --color-secondary: #10B981;
-    --color-accent: #F59E0B;
+    --color-primary: #10B981;
+    --color-primary-hover: #059669;
+    --color-secondary: #34D399;
+    --color-accent: #6EE7B7;
     --color-danger: #EF4444;
 
     /* Spacing */
@@ -337,7 +337,7 @@ body {
 
 .input:focus {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 .input:disabled {
@@ -408,7 +408,7 @@ body {
 /* Upload Progress Bar */
 .upload-progress {
     transition: width 0.3s ease-out;
-    background: linear-gradient(90deg, #4F46E5, #7C3AED);
+    background: linear-gradient(90deg, #10B981, #059669);
 }
 
 /* Drag and Drop Zone */
@@ -419,7 +419,7 @@ body {
 
 .drop-zone.drag-over {
     border-color: var(--color-primary) !important;
-    background-color: rgba(79, 70, 229, 0.05) !important;
+    background-color: rgba(16, 185, 129, 0.05) !important;
 }
 
 .drop-zone::after {
@@ -447,7 +447,7 @@ body {
 }
 
 .badge-primary {
-    background-color: #EEF2FF;
+    background-color: #ECFDF5;
     color: var(--color-primary);
 }
 
@@ -538,7 +538,7 @@ body {
 /* Focus Styles */
 .focus-ring:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 /* Gradient Backgrounds */

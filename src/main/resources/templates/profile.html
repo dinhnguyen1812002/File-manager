@@ -1,522 +1,297 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Profile - FileTransfer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-         <link th:fragment="link-css" rel="stylesheet" th:href="@{/css/input.css}">
-</head>
-<body class="bg-gray-50 min-h-screen">
+<html xmlns:th="http://www.thymeleaf.org" lang="vi"
+      th:replace="~{layout/main-layout :: layout(~{::main-content}, 'Profile')}">
 
-<!-- Enhanced Navbar -->
-<nav th:replace= "~{ Fragments/header :: nav-1}" > </nav>
-<!-- Hero Section with Profile Header -->
-<div class="gradient-bg relative overflow-hidden">
-    <div class="absolute inset-0 opacity-20">
-        <div class="absolute top-10 left-10 w-16 h-16 bg-white rounded-full animate-pulse"></div>
-        <div class="absolute top-32 right-20 w-12 h-12 bg-purple-300 rounded-full animate-bounce"></div>
-        <div class="absolute bottom-20 left-1/4 w-8 h-8 bg-indigo-300 rounded-full animate-ping"></div>
-    </div>
-    
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
-        <div class="text-center">
-            <div class="inline-block relative slide-in">
-                <div class="w-32 h-32 rounded-full overflow-hidden mx-auto avatar-glow ring-4 ring-white/30">
-                    <img th:if="${user.avatar != null}" th:src="@{'/avatars/' + ${user.avatar}}" alt="User Avatar" class="w-full h-full object-cover">
-                    <div th:unless="${user.avatar != null}" class="w-full h-full bg-gradient-to-br from-purple-400 to-indigo-600 flex items-center justify-center">
-                        <i class="fas fa-user text-white text-4xl"></i>
-                    </div>
-                </div>
-                <button type="button" onclick="openAvatarModal()" class="absolute bottom-2 right-2 bg-white p-2 rounded-full text-purple-600 shadow-lg hover:bg-purple-50 focus:outline-none transition-all duration-200">
-                    <i class="fas fa-camera text-sm"></i>
-                </button>
-            </div>
-            
-            <div class="mt-6 fade-in">
-                <h1 class="text-4xl font-bold text-white mb-2" th:text="${user.username}">Username</h1>
-                <p class="text-purple-200 text-lg" th:text="${user.email}">user@example.com</p>
-                <p class="text-purple-200 text-lg" th:text="${user.bio}">user@example.com</p>
-                <div class="mt-4 inline-flex items-center px-4 py-2 bg-white/20 rounded-full text-white backdrop-blur-sm">
-                    <i class="fas fa-calendar-alt mr-2"></i>
-                    <span>Member since January 2024</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<div th:fragment="main-content" x-data="{ avatarModal: false, avatarFileName: '', avatarFileSize: '' }">
 
-<!-- Main Content -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Alert Messages -->
-    <div th:if="${message}" class="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg fade-in">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <i class="fas fa-check-circle text-green-400"></i>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm text-green-700" th:text="${message}"></p>
-            </div>
-        </div>
-    </div>
-    
-    <div th:if="${error}" class="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg fade-in">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <i class="fas fa-exclamation-circle text-red-400"></i>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm text-red-700" th:text="${error}"></p>
-            </div>
-        </div>
+    <div th:if="${message}"
+         x-data="{ show: true }"
+         x-show="show"
+         x-init="setTimeout(() => show = false, 5000)"
+         class="mb-6 flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
+        <i class="fas fa-check-circle text-green-600"></i>
+        <p th:text="${message}"></p>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-upload text-white"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Uploaded Files</p>
-                    <p class="text-2xl font-bold stats-counter" th:text="${#lists.size(user.uploadedFiles)}">0</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-download text-white"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Received Files</p>
-                    <p class="text-2xl font-bold stats-counter" th:text="${#lists.size(user.receivedFiles)}">0</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-hdd text-white"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Storage Used</p>
-                    <p class="text-2xl font-bold stats-counter" data-storage="used" th:text="${totalUsedFormatted}">0 B</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-share-alt text-white"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Shared Files</p>
-                    <p class="text-2xl font-bold stats-counter" th:text="${storageStats.sharedFiles}">0</p>
-                </div>
-            </div>
-        </div>
+    <div th:if="${error}"
+         x-data="{ show: true }"
+         x-show="show"
+         x-init="setTimeout(() => show = false, 5000)"
+         class="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+        <i class="fas fa-exclamation-circle text-red-600"></i>
+        <p th:text="${error}"></p>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Profile Information -->
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-user-edit mr-3 text-purple-600"></i>
-                        Profile Information
-                    </h3>
-                    <p class="text-sm text-gray-600 mt-1">Update your personal details and preferences</p>
-                </div>
-                
-                <div class="p-6">
-                    <form th:action="@{/profile/update}" method="post" class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
-                                    <i class="fas fa-user mr-2 text-gray-400"></i>Username
-                                </label>
-                                <input id="username" name="username" type="text" th:value="${user.username}" disabled 
-                                       class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200">
-                                <p class="mt-1 text-xs text-gray-500">Username cannot be changed</p>
-                            </div>
-                            
-                            <div>
-                                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-                                    <i class="fas fa-envelope mr-2 text-gray-400"></i>Email Address
-                                </label>
-                                <input id="email" name="email" type="email" th:value="${user.email}" required 
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200">
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label for="bio" class="block text-sm font-medium text-gray-700 mb-2">
-                                <i class="fas fa-align-left mr-2 text-gray-400"></i>Bio
-                            </label>
-                            <textarea id="bio" name="bio" rows="3" placeholder="Tell us about yourself..."
-                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"></textarea>
-                        </div>
-                        
-                        <div class="flex justify-end space-x-3">
-                            <button type="button" class="px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200">
-                                Cancel
-                            </button>
-                            <button type="submit" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200">
-                                <i class="fas fa-save mr-2"></i>Save Changes
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Activity & Settings -->
-        <div class="space-y-6">
-            <!-- Storage Usage -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <i class="fas fa-chart-pie mr-3 text-purple-600"></i>
-                    Storage Usage
-                </h4>
-                
-                <div class="relative">
-                    <div class="flex items-center justify-center">
-                        <svg class="w-32 h-32">
-                            <circle cx="64" cy="64" r="50" stroke="#e5e7eb" stroke-width="8" fill="transparent"></circle>
-                            <circle cx="64" cy="64" r="50" stroke="url(#gradient)" stroke-width="8" fill="transparent"
-                                    th:attr="stroke-dasharray='314', stroke-dashoffset=${314 - (314 * storageUsagePercentage / 100)}" class="progress-ring"></circle>
-                            <defs>
-                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#8b5cf6"/>
-                                    <stop offset="100%" style="stop-color:#3b82f6"/>
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                        <div class="absolute text-center">
-                            <p class="text-2xl font-bold text-gray-900 storage-center-used" th:text="${totalUsedFormatted}">0 B</p>
-                            <p class="text-sm text-gray-500 storage-center-limit" th:text="'of ' + ${storageLimitFormatted}">of 5GB</p>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4 space-y-2">
-                        <div class="flex justify-between text-sm" th:if="${storageStats.documentBytes > 0}">
-                            <span class="text-gray-600 flex items-center">
-                                <i class="fas fa-file-alt text-blue-500 mr-2"></i>Documents
-                            </span>
-                            <span class="font-medium" th:text="${documentsFormatted}">0 B</span>
-                        </div>
-                        <div class="flex justify-between text-sm" th:if="${storageStats.imageBytes > 0}">
-                            <span class="text-gray-600 flex items-center">
-                                <i class="fas fa-image text-green-500 mr-2"></i>Images
-                            </span>
-                            <span class="font-medium" th:text="${imagesFormatted}">0 B</span>
-                        </div>
-                        <div class="flex justify-between text-sm" th:if="${storageStats.videoBytes > 0}">
-                            <span class="text-gray-600 flex items-center">
-                                <i class="fas fa-video text-red-500 mr-2"></i>Videos
-                            </span>
-                            <span class="font-medium" th:text="${videosFormatted}">0 B</span>
-                        </div>
-                        <div class="flex justify-between text-sm" th:if="${storageStats.audioBytes > 0}">
-                            <span class="text-gray-600 flex items-center">
-                                <i class="fas fa-music text-purple-500 mr-2"></i>Audio
-                            </span>
-                            <span class="font-medium" th:text="${audioFormatted}">0 B</span>
-                        </div>
-                        <div class="flex justify-between text-sm" th:if="${storageStats.otherBytes > 0}">
-                            <span class="text-gray-600 flex items-center">
-                                <i class="fas fa-file text-gray-500 mr-2"></i>Others
-                            </span>
-                            <span class="font-medium" th:text="${othersFormatted}">0 B</span>
-                        </div>
-
-                        <!-- Show message if no files -->
-                        <div th:if="${storageStats.totalFiles == 0}" class="text-center py-4">
-                            <i class="fas fa-folder-open text-gray-400 text-2xl mb-2"></i>
-                            <p class="text-sm text-gray-500">No files uploaded yet</p>
-                        </div>
-                    </div>
-
-                    <!-- Storage Progress Bar -->
-                    <div class="mt-6 pt-4 border-t border-gray-200">
-                        <div class="flex justify-between text-sm text-gray-600 mb-2">
-                            <span>Storage Usage</span>
-                            <span class="storage-progress-text" th:text="${#numbers.formatDecimal(storageUsagePercentage, 1, 1)} + '%'">0%</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="storage-progress-bar bg-gradient-to-r from-purple-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
-                                 th:style="'width: ' + ${storageUsagePercentage} + '%'"></div>
-                        </div>
-                        <div class="flex justify-between text-xs text-gray-500 mt-1">
-                            <span th:text="${totalUsedFormatted}">0 B</span>
-                            <span th:text="${storageLimitFormatted}">5 GB</span>
-                        </div>
-
-                        <!-- Warning if storage is almost full -->
-                        <div th:if="${storageUsagePercentage > 80}" class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <div class="flex items-center">
-                                <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
-                                <p class="text-sm text-yellow-800">
-                                    <span th:if="${storageUsagePercentage > 95}">Storage almost full!</span>
-                                    <span th:unless="${storageUsagePercentage > 95}">Storage getting full</span>
-                                    Consider deleting some files.
-                                </p>
-                            </div>
-                        </div>
+    <!-- Profile Header -->
+    <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div class="flex items-center gap-6">
+            <!-- Avatar -->
+            <div class="relative">
+                <div class="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                    <img th:if="${user.avatar != null}"
+                         th:src="@{'/uploads/avatars/' + ${user.avatar}}"
+                         alt="Avatar"
+                         class="w-full h-full object-cover">
+                    <div th:unless="${user.avatar != null}"
+                         class="w-full h-full flex items-center justify-center">
+                        <i class="fas fa-user text-gray-400 text-3xl"></i>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Recent Activity -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <i class="fas fa-clock mr-3 text-purple-600"></i>
-                    Recent Activity
-                </h4>
-                
-                <div class="space-y-3">
-                    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                            <i class="fas fa-upload text-blue-600 text-sm"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900">Uploaded document.pdf</p>
-                            <p class="text-xs text-gray-500">2 hours ago</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                            <i class="fas fa-share text-green-600 text-sm"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900">Shared presentation.pptx</p>
-                            <p class="text-xs text-gray-500">1 day ago</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                            <i class="fas fa-download text-purple-600 text-sm"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900">Downloaded report.xlsx</p>
-                            <p class="text-xs text-gray-500">3 days ago</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <button class="w-full mt-4 text-sm text-purple-600 hover:text-purple-700 font-medium">
-                    View all activity
+                <button type="button"
+                        @click="avatarModal = true"
+                        class="absolute -bottom-2 -right-2 w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-gray-600 hover:text-primary hover:border-primary transition-colors shadow-sm">
+                    <i class="fas fa-camera text-xs"></i>
                 </button>
             </div>
+
+            <!-- User Info -->
+            <div class="flex-1">
+                <h1 class="text-2xl font-semibold text-gray-900" th:text="${user.username}">Username</h1>
+                <p class="text-sm text-gray-600 mt-1" th:text="${user.email}">user@email.com</p>
+                <p class="text-sm text-gray-500 mt-2" th:if="${user.bio}" th:text="${user.bio}"></p>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Enhanced Avatar Upload Modal -->
-<div id="avatar-upload-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
+    <!-- Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <i class="fas fa-upload text-blue-600"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-600">Uploaded</p>
+                    <p class="text-xl font-semibold text-gray-900" th:text="${#lists.size(user.uploadedFiles)}">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                    <i class="fas fa-download text-green-600"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-600">Received</p>
+                    <p class="text-xl font-semibold text-gray-900" th:text="${#lists.size(user.receivedFiles)}">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                    <i class="fas fa-hdd text-purple-600"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-600">Storage</p>
+                    <p class="text-lg font-semibold text-gray-900" th:text="${totalUsedFormatted}">0 B</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
+                    <i class="fas fa-share-alt text-orange-600"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-600">Shared</p>
+                    <p class="text-xl font-semibold text-gray-900" th:text="${storageStats.sharedFiles}">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Profile Form -->
+        <div class="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Profile Information</h3>
+
+            <form th:action="@{/profile/update}" method="post" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Username -->
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                        <input id="username" name="username" type="text"
+                               th:value="${user.username}" disabled
+                               class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-500 cursor-not-allowed">
+                        <p class="mt-1 text-xs text-gray-500">Username cannot be changed</p>
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                        <input id="email" name="email" type="email"
+                               th:value="${user.email}" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- Bio -->
+                <div>
+                    <label for="bio" class="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                    <textarea id="bio" name="bio" rows="3"
+                              th:text="${user.bio}"
+                              placeholder="Tell us about yourself..."
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="reset"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Storage Usage -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-6">Storage Usage</h4>
+
+            <!-- Progress Circle -->
+            <div class="flex items-center justify-center mb-6">
+                <div class="relative w-32 h-32">
+                    <svg class="w-full h-full -rotate-90" viewBox="0 0 128 128">
+                        <circle cx="64" cy="64" r="50" stroke="#f3f4f6" stroke-width="10" fill="transparent"/>
+                        <circle cx="64" cy="64" r="50"
+                                stroke="#10b981"
+                                stroke-width="10"
+                                fill="transparent"
+                                stroke-linecap="round"
+                                th:attr="stroke-dasharray='314', stroke-dashoffset=${314 - (314 * storageUsagePercentage / 100)}"
+                                class="transition-all duration-700"/>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <p class="text-lg font-bold text-gray-900" th:text="${totalUsedFormatted}">0 B</p>
+                        <p class="text-xs text-gray-500" th:text="'of ' + ${storageLimitFormatted}">of 5 GB</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="mb-4">
+                <div class="flex justify-between text-xs text-gray-600 mb-2">
+                    <span>Used</span>
+                    <span th:text="${#numbers.formatDecimal(storageUsagePercentage, 1, 1)} + '%'">0%</span>
+                </div>
+                <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-primary rounded-full transition-all duration-500"
+                         th:style="'width: ' + ${storageUsagePercentage} + '%'"></div>
+                </div>
+            </div>
+
+            <!-- Storage Breakdown -->
+            <div class="space-y-2 text-sm">
+                <div th:if="${storageStats.documentBytes > 0}" class="flex justify-between">
+                    <span class="text-gray-600">Documents</span>
+                    <span class="font-medium text-gray-900" th:text="${documentsFormatted}">0 B</span>
+                </div>
+                <div th:if="${storageStats.imageBytes > 0}" class="flex justify-between">
+                    <span class="text-gray-600">Images</span>
+                    <span class="font-medium text-gray-900" th:text="${imagesFormatted}">0 B</span>
+                </div>
+                <div th:if="${storageStats.videoBytes > 0}" class="flex justify-between">
+                    <span class="text-gray-600">Videos</span>
+                    <span class="font-medium text-gray-900" th:text="${videosFormatted}">0 B</span>
+                </div>
+                <div th:if="${storageStats.audioBytes > 0}" class="flex justify-between">
+                    <span class="text-gray-600">Audio</span>
+                    <span class="font-medium text-gray-900" th:text="${audioFormatted}">0 B</span>
+                </div>
+                <div th:if="${storageStats.otherBytes > 0}" class="flex justify-between">
+                    <span class="text-gray-600">Others</span>
+                    <span class="font-medium text-gray-900" th:text="${othersFormatted}">0 B</span>
+                </div>
+            </div>
+
+            <!-- Warning -->
+            <div th:if="${storageUsagePercentage > 80}"
+                 class="mt-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <i class="fas fa-exclamation-triangle text-amber-600 text-sm mt-0.5"></i>
+                <p class="text-xs text-amber-700">
+                    Storage getting full. Consider deleting some files.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Avatar Upload Modal -->
+    <div x-show="avatarModal"
+         @click.self="avatarModal = false"
+         @keydown.escape.window="avatarModal = false"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+         style="display:none;"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100">
+
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-gray-900">Upload Profile Picture</h3>
-                <button type="button" onclick="closeAvatarModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <i class="fas fa-times text-lg"></i>
+                <button type="button" @click="avatarModal = false"
+                        class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
-        </div>
-        
-        <div class="p-6">
+
+            <!-- Form -->
             <form th:action="@{/profile/avatar}" method="post" enctype="multipart/form-data">
-                <div class="text-center mb-6">
-                    <div class="w-24 h-24 mx-auto bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mb-4">
-                        <i class="fas fa-camera text-white text-2xl"></i>
-                    </div>
-                    <p class="text-sm text-gray-600">Choose a photo that represents you well. It will be displayed on your profile and visible to other users.</p>
-                </div>
-                
-                <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-purple-400 transition-colors duration-200">
-                    <div class="space-y-2">
-                        <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl"></i>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4">
+                    <div x-show="!avatarFileName" class="space-y-3">
+                        <i class="fas fa-cloud-upload-alt text-gray-400 text-4xl"></i>
                         <div>
                             <label for="avatar" class="cursor-pointer">
-                                <span class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200">
-                                    <i class="fas fa-upload mr-2"></i>Choose File
+                                <span class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                                    <i class="fas fa-upload text-xs"></i>Choose File
                                 </span>
-                                <input id="avatar" name="avatar" type="file" accept="image/*" class="hidden" required>
+                                <input id="avatar" name="avatar" type="file" accept="image/*"
+                                       class="hidden" required
+                                       @change="avatarFileName = $event.target.files[0]?.name; avatarFileSize = ($event.target.files[0]?.size / 1024 / 1024).toFixed(2)">
                             </label>
                         </div>
                         <p class="text-xs text-gray-500">PNG, JPG, GIF up to 2MB</p>
                     </div>
+
+                    <div x-show="avatarFileName" class="space-y-2">
+                        <i class="fas fa-check-circle text-green-500 text-4xl"></i>
+                        <p class="font-medium text-gray-900 text-sm" x-text="avatarFileName"></p>
+                        <p class="text-xs text-gray-500" x-text="avatarFileSize + ' MB'"></p>
+                        <label for="avatar" class="cursor-pointer">
+                            <span class="text-primary hover:text-green-700 text-xs font-medium">Choose different file</span>
+                        </label>
+                    </div>
                 </div>
-                
-                <div class="mt-6 flex space-x-3">
-                    <button type="button" onclick="closeAvatarModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+
+                <div class="flex gap-3">
+                    <button type="button" @click="avatarModal = false; avatarFileName = ''; avatarFileSize = ''"
+                            class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                         Cancel
                     </button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-200">
+                    <button type="submit"
+                            class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-green-700 transition-colors">
                         <i class="fas fa-upload mr-2"></i>Upload
                     </button>
                 </div>
             </form>
         </div>
     </div>
+
 </div>
 
-<script>
-    // Modal functions
-    function openAvatarModal() {
-        document.getElementById('avatar-upload-modal').classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    }
-    
-    function closeAvatarModal() {
-        document.getElementById('avatar-upload-modal').classList.add('hidden');
-        document.body.style.overflow = 'auto';
-    }
-    
-    // File input preview
-    document.addEventListener('DOMContentLoaded', function() {
-        const fileInput = document.getElementById('avatar');
-        if (fileInput) {
-            fileInput.addEventListener('change', function(e) {
-    if (e.target.files[0]) {
-        const fileName = e.target.files[0].name;
-        const fileSize = (e.target.files[0].size / 1024 / 1024).toFixed(2);
-
-        // ✅ Không thay thế innerHTML nữa — chỉ chèn thêm một div preview
-        const uploadArea = e.target.closest('.border-dashed');
-
-        // Xoá preview cũ nếu có
-        const oldPreview = uploadArea.querySelector('.file-preview');
-        if (oldPreview) oldPreview.remove();
-
-        // Tạo preview mới
-        const preview = document.createElement('div');
-        preview.classList.add('file-preview', 'mt-4');
-        preview.innerHTML = `
-            <div class="space-y-2">
-                <i class="fas fa-check-circle text-green-500 text-3xl"></i>
-                <div>
-                    <p class="font-medium text-gray-900">${fileName}</p>
-                    <p class="text-sm text-gray-500">${fileSize} MB</p>
-                </div>
-                <label for="avatar" class="cursor-pointer">
-                    <span class="text-purple-600 hover:text-purple-700 text-sm font-medium">
-                        Choose different file
-                    </span>
-                </label>
-            </div>
-        `;
-
-        uploadArea.appendChild(preview);
-    }
-});
-        }
-        
-        // Counter animation
-        function animateCounters() {
-            const counters = document.querySelectorAll('.stats-counter');
-            counters.forEach(counter => {
-                const target = parseInt(counter.textContent) || 0;
-                let current = 0;
-                const increment = target / 20;
-                const timer = setInterval(() => {
-                    current += increment;
-                    if (current >= target) {
-                        counter.textContent = target;
-                        clearInterval(timer);
-                    } else {
-                        counter.textContent = Math.floor(current);
-                    }
-                }, 50);
-            });
-        }
-        
-        // Trigger counter animation on page load
-        setTimeout(animateCounters, 500);
-
-        // Storage usage functions
-        function updateStorageUsage() {
-            fetch('/api/storage-usage')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        console.error('Error fetching storage usage:', data.error);
-                        return;
-                    }
-
-                    // Update storage used in stats card
-                    const storageUsedElement = document.querySelector('.stats-counter[data-storage="used"]');
-                    if (storageUsedElement) {
-                        storageUsedElement.textContent = data.totalUsedFormatted;
-                    }
-
-                    // Update progress ring
-                    const progressRing = document.querySelector('.progress-ring');
-                    if (progressRing) {
-                        const circumference = 314;
-                        const offset = circumference - (circumference * data.usagePercentage / 100);
-                        progressRing.style.strokeDashoffset = offset;
-                    }
-
-                    // Update center text
-                    const centerUsed = document.querySelector('.storage-center-used');
-                    const centerLimit = document.querySelector('.storage-center-limit');
-                    if (centerUsed) centerUsed.textContent = data.totalUsedFormatted;
-                    if (centerLimit) centerLimit.textContent = 'of ' + data.storageLimitFormatted;
-
-                    // Update progress bar
-                    const progressBar = document.querySelector('.storage-progress-bar');
-                    const progressText = document.querySelector('.storage-progress-text');
-                    if (progressBar) {
-                        progressBar.style.width = data.usagePercentage + '%';
-                    }
-                    if (progressText) {
-                        progressText.textContent = data.usagePercentage.toFixed(1) + '%';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating storage usage:', error);
-                });
-        }
-
-        // Update storage usage every 30 seconds
-        setInterval(updateStorageUsage, 30000);
-        
-        // Auto-hide alerts after 5 seconds
-        const alerts = document.querySelectorAll('[class*="bg-green-50"], [class*="bg-red-50"]');
-        alerts.forEach(alert => {
-            setTimeout(() => {
-                alert.style.opacity = '0';
-                alert.style.transform = 'translateX(100%)';
-                setTimeout(() => alert.remove(), 300);
-            }, 5000);
-        });
-    });
-    
-    // Close modal when clicking outside
-    document.getElementById('avatar-upload-modal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeAvatarModal();
-        }
-    });
-    
-    // Keyboard navigation
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeAvatarModal();
-        }
-    });
-</script>
-
-</body>
 </html>

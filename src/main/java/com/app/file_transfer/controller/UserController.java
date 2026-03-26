@@ -1,6 +1,8 @@
 package com.app.file_transfer.controller;
 
+import com.app.file_transfer.dto.DashboardViewModel;
 import com.app.file_transfer.model.User;
+import com.app.file_transfer.services.DashboardService;
 import com.app.file_transfer.services.FileStorageService;
 import com.app.file_transfer.services.PreviewService;
 import com.app.file_transfer.services.StorageUsageService;
@@ -40,12 +42,15 @@ public class UserController {
 
     @Autowired
     private FileStorageService fileStorageService;
+    
     @Autowired
     private AuthenticationManager authenticationManager;
 
-
     @Autowired
     private StorageUsageService storageUsageService;
+    
+    @Autowired
+    private DashboardService dashboardService;
     @GetMapping("/login")
     public String Login(){
     return "login";
@@ -68,27 +73,26 @@ public class UserController {
             return "register";
         }
 
-        // 1️⃣ Register user
         userService.registerNewUser(username, password, email);
 
-        // 2️⃣ Authenticate user programmatically
+
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(username, password);
 
         Authentication authentication =
                 authenticationManager.authenticate(authToken);
 
-        // 3️⃣ Set authentication to SecurityContext
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 4️⃣ Create session manually (important!)
+
         HttpSession session = request.getSession(true);
         session.setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 SecurityContextHolder.getContext()
         );
 
-        // 5️⃣ Redirect to dashboard
+
         return "redirect:/files/dashboard";
     }
 
@@ -102,6 +106,15 @@ public class UserController {
 
         // Get storage usage statistics
         StorageUsageService.StorageUsageStats storageStats = storageUsageService.getStorageUsageStats(currentUser.getUsername());
+
+        // Add dashboard data for Alpine.js component
+        try {
+            DashboardViewModel dashboardViewModel = dashboardService.buildDashboard(currentUser.getUsername());
+            model.addAttribute("dashboardViewModel", dashboardViewModel);
+        } catch (Exception e) {
+            // If dashboard fails, provide empty data
+            model.addAttribute("dashboardViewModel", null);
+        }
 
         model.addAttribute("user", user);
         model.addAttribute("storageStats", storageStats);

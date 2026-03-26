@@ -601,23 +601,23 @@ public class FileController {
     public ResponseEntity<?> getFileMetadata(@PathVariable Long fileId,
             @AuthenticationPrincipal UserDetails currentUser) {
         try {
-            System.out.println("=== GET FILE METADATA FOR PREVIEW ===");
-            System.out.println("FileId: " + fileId);
-            System.out.println("User: " + currentUser.getUsername());
+            // System.out.println("=== GET FILE METADATA FOR PREVIEW ===");
+            // System.out.println("FileId: " + fileId);
+            // System.out.println("User: " + currentUser.getUsername());
 
             Map<String, Object> metadata = previewService.getFileMetadata(fileId, currentUser.getUsername());
-            System.out.println("Metadata retrieved: " + metadata);
+            // System.out.println("Metadata retrieved: " + metadata);
             return ResponseEntity.ok(metadata);
         } catch (SecurityException e) {
-            System.err.println("Security error: " + e.getMessage());
+            // System.err.println("Security error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "You don't have permission to access this file"));
         } catch (IllegalArgumentException e) {
-            System.err.println("Not found error: " + e.getMessage());
+            // System.err.println("Not found error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            System.err.println("Server error: " + e.getMessage());
+            // System.err.println("Server error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "An error occurred while retrieving file metadata"));
@@ -630,14 +630,10 @@ public class FileController {
     public ResponseEntity<?> getPreviewInfo(@PathVariable Long fileId,
             @AuthenticationPrincipal UserDetails currentUser) {
         try {
-            System.out.println("=== GET PREVIEW INFO ===");
-            System.out.println("FileId: " + fileId);
-            System.out.println("User: " + currentUser.getUsername());
+          
 
             PreviewService.PreviewInfo previewInfo = previewService.getPreviewInfo(fileId, currentUser.getUsername());
-            System.out.println("Preview info retrieved: " + previewInfo);
-            System.out.println("Preview URL: " + previewInfo.getPreviewUrl());
-            System.out.println("Preview type: " + previewInfo.getPreviewType());
+         
             return ResponseEntity.ok(previewInfo);
         } catch (SecurityException e) {
             System.err.println("Security error: " + e.getMessage());

@@ -1,30 +1,472 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org"  xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FileHub - Hệ thống quản lý file thông minh</title>
+    <meta name="description" content="FileHub - Nền tảng lưu trữ và chia sẻ file đám mây an toàn">
+    <title>FileHub - Lưu Trữ File An Toàn</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-     <link th:fragment="link-css" rel="stylesheet" th:href="@{/css/input.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#10b981'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-gray-50 overflow-x-hidden">
-    <!-- Navigation -->
+<body class="bg-white antialiased">
     
-    <th:block th:replace= "~{ Fragments/header :: nav-1}" ></th:block>
-    <!-- Hero Section -->
-    <div th:replace= "~{component/hero :: hero }"></div>
-    <!-- Features Section -->
-    <div th:replace= "~{component/features :: features }"></div>
-    <!-- Stats Section -->
-    <div th:replace= "~{component/stats :: stats }"></div>
-    <!-- Pricing Section -->
-    <!-- <div th:replace= "~{component/price :: price }"></div> -->
-    <!-- CTA Section -->
-    <div th:replace= "~{component/cta :: cta }"></div>
-    <!-- Footer -->
-    <th:block th:replace= "~{ Fragments/footer :: footer}" ></th:block>
+    <!-- Navigation -->
+    <nav class="fixed w-full top-0 z-50 bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-primary rounded flex items-center justify-center">
+                        <i class="fas fa-cloud text-white text-sm"></i>
+                    </div>
+                    <span class="text-lg font-semibold text-gray-900">FileHub</span>
+                </div>
 
-   <script th:src="@{/js/script.js}" ></script>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="text-sm text-gray-600 hover:text-gray-900">Tính năng</a>
+                    <a href="#pricing" class="text-sm text-gray-600 hover:text-gray-900">Bảng giá</a>
+                    <a href="#contact" class="text-sm text-gray-600 hover:text-gray-900">Liên hệ</a>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-4">
+                    <div sec:authorize="!isAuthenticated()">
+                        <a href="/login" class="text-sm text-gray-600 hover:text-gray-900">Đăng nhập</a>
+                        <a href="/register" class="bg-primary text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-700">
+                            Đăng ký
+                        </a>
+                    </div>
+                    <div sec:authorize="isAuthenticated()">
+                        <a href="/files/dashboard" class="bg-primary text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-700">
+                            Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <button id="mobile-menu-btn" class="md:hidden">
+                    <i class="fas fa-bars text-gray-600"></i>
+                </button>
+            </div>
+
+            <div id="mobile-menu" class="hidden md:hidden pb-4 border-t border-gray-200">
+                <div class="flex flex-col space-y-3 pt-4">
+                    <a href="#features" class="text-sm text-gray-600 hover:text-gray-900">Tính năng</a>
+                    <a href="#pricing" class="text-sm text-gray-600 hover:text-gray-900">Bảng giá</a>
+                    <a href="#contact" class="text-sm text-gray-600 hover:text-gray-900">Liên hệ</a>
+                    <div sec:authorize="!isAuthenticated()" class="pt-3 border-t border-gray-200">
+                        <a href="/login" class="block text-sm text-gray-600 hover:text-gray-900 mb-2">Đăng nhập</a>
+                        <a href="/register" class="block bg-primary text-white px-4 py-2 rounded text-sm font-medium text-center">
+                            Đăng ký
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <div>
+                    <div class="inline-block px-3 py-1 border border-gray-200 rounded-full text-xs text-gray-600 mb-6">
+                        Miễn phí 30 ngày
+                    </div>
+                    
+                    <h1 class="text-5xl font-bold text-gray-900 mb-6 leading-tight">
+                        Lưu trữ và chia sẻ file an toàn
+                    </h1>
+                    
+                    <p class="text-lg text-gray-600 mb-8 leading-relaxed">
+                        Nền tảng lưu trữ đám mây đơn giản cho doanh nghiệp. Truy cập file mọi lúc, mọi nơi với bảo mật tuyệt đối.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-3 mb-12">
+                        <a href="/register" class="inline-flex items-center justify-center bg-primary text-white px-6 py-3 rounded font-medium hover:bg-green-700">
+                            Bắt đầu miễn phí
+                            <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                        </a>
+                        <a href="#demo" class="inline-flex items-center justify-center border border-gray-300 text-gray-700 px-6 py-3 rounded font-medium hover:border-gray-400">
+                            <i class="fas fa-play mr-2 text-sm"></i>
+                            Xem demo
+                        </a>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-6 text-sm text-gray-500">
+                        <div class="flex items-center">
+                            <i class="fas fa-check text-primary mr-2"></i>
+                            Không cần thẻ
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-check text-primary mr-2"></i>
+                            Hủy bất cứ lúc nào
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-900">File gần đây</h3>
+                        <button class="text-xs text-primary hover:text-green-700">Xem tất cả</button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3 p-3 rounded hover:bg-gray-50">
+                            <div class="w-10 h-10 bg-blue-50 rounded flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-file-pdf text-blue-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-medium text-gray-900 truncate">Báo_cáo_Q4.pdf</div>
+                                <div class="text-xs text-gray-500">2.4 MB</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-3 rounded hover:bg-gray-50">
+                            <div class="w-10 h-10 bg-green-50 rounded flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-file-excel text-green-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-medium text-gray-900 truncate">Dữ_liệu.xlsx</div>
+                                <div class="text-xs text-gray-500">5.2 MB</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-3 rounded hover:bg-gray-50">
+                            <div class="w-10 h-10 bg-purple-50 rounded flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-image text-purple-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-medium text-gray-900 truncate">Logo.png</div>
+                                <div class="text-xs text-gray-500">3.8 MB</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 mt-4 border-t border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-gray-600">Dung lượng</span>
+                            <span class="text-xs font-medium text-gray-900">45 / 100 GB</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-gray-100 rounded-full">
+                            <div class="h-full bg-primary rounded-full" style="width: 45%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 px-6 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="max-w-2xl mb-16">
+                <span class="text-xs font-semibold text-primary uppercase tracking-wide">Tính năng</span>
+                <h2 class="text-4xl font-bold text-gray-900 mb-4 mt-2">
+                    Mọi thứ bạn cần
+                </h2>
+                <p class="text-lg text-gray-600">
+                    Các tính năng thiết yếu để quản lý file hiệu quả
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white border border-gray-200 p-6 rounded">
+                    <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center mb-4">
+                        <i class="fas fa-cloud-upload-alt text-primary"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-2">Upload nhanh</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Kéo thả file với tốc độ cao. Hỗ trợ mọi định dạng lên đến 5GB.
+                    </p>
+                </div>
+
+                <div class="bg-white border border-gray-200 p-6 rounded">
+                    <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center mb-4">
+                        <i class="fas fa-share-alt text-primary"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-2">Chia sẻ dễ dàng</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Chia sẻ file an toàn với quyền truy cập tùy chỉnh và bảo vệ mật khẩu.
+                    </p>
+                </div>
+
+                <div class="bg-white border border-gray-200 p-6 rounded">
+                    <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center mb-4">
+                        <i class="fas fa-shield-alt text-primary"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-2">Bảo mật cao</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Mã hóa end-to-end và xác thực 2FA đảm bảo file luôn an toàn.
+                    </p>
+                </div>
+
+                <div class="bg-white border border-gray-200 p-6 rounded">
+                    <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center mb-4">
+                        <i class="fas fa-search text-primary"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-2">Tìm kiếm thông minh</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Tìm file nhanh chóng theo tên, nội dung hoặc thẻ tag.
+                    </p>
+                </div>
+
+                <div class="bg-white border border-gray-200 p-6 rounded">
+                    <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center mb-4">
+                        <i class="fas fa-users text-primary"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-2">Cộng tác nhóm</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Làm việc cùng nhau với cộng tác real-time và kiểm soát phiên bản.
+                    </p>
+                </div>
+
+                <div class="bg-white border border-gray-200 p-6 rounded">
+                    <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center mb-4">
+                        <i class="fas fa-mobile-alt text-primary"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-2">Đa nền tảng</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Truy cập file trên web, iOS, Android với đồng bộ tự động.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8 text-center">
+                <div>
+                    <div class="text-4xl font-bold text-gray-900 mb-2">10K+</div>
+                    <div class="text-sm text-gray-600">Người dùng</div>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold text-gray-900 mb-2">1M+</div>
+                    <div class="text-sm text-gray-600">File lưu trữ</div>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold text-gray-900 mb-2">99.9%</div>
+                    <div class="text-sm text-gray-600">Uptime</div>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold text-gray-900 mb-2">24/7</div>
+                    <div class="text-sm text-gray-600">Hỗ trợ</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-20 px-6 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <span class="text-xs font-semibold text-primary uppercase tracking-wide">Bảng giá</span>
+                <h2 class="text-4xl font-bold text-gray-900 mb-4 mt-2">
+                    Gói phù hợp với mọi nhu cầu
+                </h2>
+                <p class="text-lg text-gray-600">
+                    Chọn gói phù hợp với quy mô của bạn
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <!-- Free Plan -->
+                <div class="bg-white border border-gray-200 rounded-lg p-8">
+                    <div class="mb-8">
+                        <div class="text-sm font-medium text-gray-600 mb-2">Miễn phí</div>
+                        <div class="text-4xl font-bold text-gray-900 mb-1">$0</div>
+                        <div class="text-sm text-gray-600">Cho cá nhân</div>
+                    </div>
+                    
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">5 GB lưu trữ</span>
+                        </li>
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">Tối đa 3 người dùng</span>
+                        </li>
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">Hỗ trợ cơ bản</span>
+                        </li>
+                    </ul>
+                    
+                    <a href="/register" class="block w-full text-center border border-gray-300 text-gray-700 px-4 py-2 rounded font-medium hover:border-gray-400">
+                        Bắt đầu
+                    </a>
+                </div>
+                
+                <!-- Pro Plan -->
+                <div class="bg-white border-2 border-primary rounded-lg p-8 relative">
+                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <span class="bg-primary text-white px-3 py-1 rounded-full text-xs font-medium">
+                            Phổ biến
+                        </span>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <div class="text-sm font-medium text-gray-600 mb-2">Pro</div>
+                        <div class="text-4xl font-bold text-gray-900 mb-1">$19</div>
+                        <div class="text-sm text-gray-600">mỗi tháng</div>
+                    </div>
+                    
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">100 GB lưu trữ</span>
+                        </li>
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">Tối đa 10 người dùng</span>
+                        </li>
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">Hỗ trợ ưu tiên</span>
+                        </li>
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">Bảo mật nâng cao</span>
+                        </li>
+                    </ul>
+                    
+                    <a href="/register" class="block w-full text-center bg-primary text-white px-4 py-2 rounded font-medium hover:bg-green-700">
+                        Chọn gói Pro
+                    </a>
+                </div>
+
+                <!-- Business Plan -->
+                <div class="bg-white border border-gray-200 rounded-lg p-8">
+                    <div class="mb-8">
+                        <div class="text-sm font-medium text-gray-600 mb-2">Doanh nghiệp</div>
+                        <div class="text-4xl font-bold text-gray-900 mb-1">$49</div>
+                        <div class="text-sm text-gray-600">mỗi tháng</div>
+                    </div>
+                    
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">Không giới hạn</span>
+                        </li>
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">Không giới hạn người dùng</span>
+                        </li>
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">API tích hợp</span>
+                        </li>
+                        <li class="flex items-center text-sm">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span class="text-gray-700">Hỗ trợ 24/7</span>
+                        </li>
+                    </ul>
+                    
+                    <a href="#contact" class="block w-full text-center border border-gray-300 text-gray-700 px-4 py-2 rounded font-medium hover:border-gray-400">
+                        Liên hệ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="contact" class="py-20 px-6">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                Sẵn sàng bắt đầu?
+            </h2>
+            <p class="text-lg text-gray-600 mb-8">
+                Tham gia cùng hàng nghìn người dùng đang tin tưởng FileHub
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="/register" class="inline-flex items-center justify-center bg-primary text-white px-8 py-3 rounded font-medium hover:bg-green-700">
+                    Dùng thử miễn phí 30 ngày
+                </a>
+                <a href="#pricing" class="inline-flex items-center justify-center border border-gray-300 text-gray-700 px-8 py-3 rounded font-medium hover:border-gray-400">
+                    Xem bảng giá
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-50 border-t border-gray-200 py-12 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 bg-primary rounded flex items-center justify-center">
+                            <i class="fas fa-cloud text-white text-sm"></i>
+                        </div>
+                        <span class="text-lg font-semibold text-gray-900">FileHub</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Nền tảng lưu trữ file đám mây an toàn và đơn giản.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-gray-900 mb-4 text-sm">Sản phẩm</h4>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li><a href="#features" class="hover:text-gray-900">Tính năng</a></li>
+                        <li><a href="#pricing" class="hover:text-gray-900">Bảng giá</a></li>
+                        <li><a href="#" class="hover:text-gray-900">Bảo mật</a></li>
+                        <li><a href="#" class="hover:text-gray-900">API</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-gray-900 mb-4 text-sm">Công ty</h4>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li><a href="#" class="hover:text-gray-900">Về chúng tôi</a></li>
+                        <li><a href="#" class="hover:text-gray-900">Blog</a></li>
+                        <li><a href="#" class="hover:text-gray-900">Tuyển dụng</a></li>
+                        <li><a href="#contact" class="hover:text-gray-900">Liên hệ</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-gray-900 mb-4 text-sm">Hỗ trợ</h4>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li><a href="#" class="hover:text-gray-900">Trung tâm trợ giúp</a></li>
+                        <li><a href="#" class="hover:text-gray-900">Tài liệu</a></li>
+                        <li><a href="#" class="hover:text-gray-900">Cộng đồng</a></li>
+                        <li><a href="#" class="hover:text-gray-900">Liên hệ hỗ trợ</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="text-sm text-gray-600">
+                        © 2024 FileHub. All rights reserved.
+                    </div>
+                    <div class="flex gap-6 text-sm text-gray-600">
+                        <a href="#" class="hover:text-gray-900">Chính sách bảo mật</a>
+                        <a href="#" class="hover:text-gray-900">Điều khoản</a>
+                        <a href="#" class="hover:text-gray-900">Cookie</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script th:src="@{/js/landing.js}"></script>
 </body>
 </html>
