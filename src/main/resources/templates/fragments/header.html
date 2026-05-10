@@ -3,13 +3,44 @@
 <header th:fragment="header" class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
     
     <!-- Search Bar -->
-    <div class="flex items-center flex-1 max-w-xl">
+    <div class="flex items-center flex-1 max-w-xl" x-data="searchComponent()">
         <div class="relative w-full">
             <input type="text" 
                 placeholder="Tìm kiếm file và folder..."
                 class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                x-model="searchQuery">
+                x-model="query"
+                @input.debounce.300ms="fetchSuggestions()"
+                @keydown="handleKeydown($event)"
+                @focus="showSuggestions = suggestions.length > 0"
+                @click.away="showSuggestions = false">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+
+            <!-- Suggestions Dropdown -->
+            <div x-show="showSuggestions" 
+                 class="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden"
+                 x-transition:enter="transition ease-out duration-100"
+                 x-transition:enter-start="opacity-0 transform scale-95"
+                 x-transition:enter-end="opacity-100 transform scale-100">
+                <ul class="max-h-64 overflow-y-auto">
+                    <template x-for="(s, index) in suggestions" :key="index">
+                        <li @click="selectSuggestion(s)"
+                            @mouseenter="selectedIndex = index"
+                            :class="selectedIndex === index ? 'bg-gray-100' : ''"
+                            class="px-4 py-2 cursor-pointer flex items-center hover:bg-gray-100 transition-colors">
+                            <i :class="s.folder ? 'fas fa-folder text-yellow-500' : 'fas fa-file text-blue-500'" class="mr-3 text-xs w-4"></i>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium text-gray-700" x-text="s.name"></span>
+                                <span class="text-xs text-gray-400" x-text="s.type"></span>
+                            </div>
+                        </li>
+                    </template>
+                </ul>
+                <div class="border-t border-gray-100 p-2 text-center">
+                    <a :href="'/search?q=' + encodeURIComponent(query)" class="text-xs text-primary font-medium hover:underline">
+                        Xem tất cả kết quả cho "<span x-text="query"></span>"
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 

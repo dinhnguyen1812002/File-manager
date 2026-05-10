@@ -9,44 +9,6 @@
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
         <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
         <link rel="stylesheet" th:href="@{/css/input.css}">
-        <style>
-            .file-card {
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-
-            .file-card:hover {
-                transform: translateY(-4px);
-            }
-
-            .gradient-bg {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            }
-
-            .stat-card {
-                backdrop-filter: blur(10px);
-            }
-
-            .tab-active {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-            }
-
-            .search-input:focus {
-                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
-            }
-
-            .file-icon-wrapper {
-                background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
-            }
-
-            .action-btn {
-                transition: all 0.2s ease;
-            }
-
-            .action-btn:hover {
-                transform: scale(1.05);
-            }
-        </style>
     </head>
 
     <body class="bg-gray-100 min-h-screen">
@@ -69,9 +31,9 @@
                         </div>
                         <div class="mt-4 md:mt-0">
                             <a href="/files/dashboard"
-                                class="inline-flex items-center px-5 py-2.5 bg-white text-green-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"></a>
-                            <i class='bx bx-cloud-upload text-xl mr-2'></i>
-                            Upload New File
+                                class="inline-flex items-center px-5 py-2.5 bg-white text-green-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                <i class='bx bx-cloud-upload text-xl mr-2'></i>
+                                Upload New File
                             </a>
                         </div>
                     </div>
@@ -139,11 +101,12 @@
                 <div class="flex-1 relative">
                     <i class='bx bx-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl'></i>
                     <input type="text" id="searchInput" placeholder="Search files..." 
-                           class="search-input w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-green-500 transition-all">
+                           class="search-input w-full pl-12 pr-4 py-3 bg-gray-50 border
+                           border-gray-200 rounded-xl focus:outline-none focus:border-green-500 transition-all">
                 </div>
                 
                 <!-- View Toggle -->
-                <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-xl"></div>
+                <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
                     <button id="gridView" class="p-2.5 rounded-lg bg-white shadow-sm text-green-600" title="Grid View">
                         <i class='bx bx-grid-alt text-xl'></i>
                     </button>
@@ -153,6 +116,7 @@
                 </div>
             </div>
         </div>
+
 
 
         <!-- Tabs -->
@@ -297,7 +261,7 @@
                 </a>
             </div>
         </section>
-</div>div>i></i>""
+
 
         <!-- Shared Files Section -->
         <section id="shared" class="tab-content hidden">
@@ -435,84 +399,6 @@
     </main>
 </div>
 
-<script th:src="@{/js/script.js}"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Tab Switching
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', function () {
-                const targetTab = this.dataset.tab;
-
-                // Update tab buttons
-                tabBtns.forEach(b => {
-                    b.classList.remove('tab-active');
-                    b.classList.add('bg-white', 'text-gray-600', 'shadow-sm');
-                });
-                this.classList.add('tab-active');
-                this.classList.remove('bg-white', 'text-gray-600', 'shadow-sm');
-
-                // Update tab contents
-                tabContents.forEach(content => {
-                    content.classList.add('hidden');
-                    if (content.id === targetTab) {
-                        content.classList.remove('hidden');
-                    }
-                });
-            });
-        });
-
-        // View Toggle
-        const gridViewBtn = document.getElementById('gridView');
-        const listViewBtn = document.getElementById('listView');
-        const uploadedGrid = document.getElementById('uploadedGrid');
-        const uploadedList = document.getElementById('uploadedList');
-        const sharedGrid = document.getElementById('sharedGrid');
-        const sharedList = document.getElementById('sharedList');
-
-        gridViewBtn.addEventListener('click', function () {
-            this.classList.add('bg-white', 'shadow-sm', 'text-green-600');
-            this.classList.remove('text-gray-500');
-            listViewBtn.classList.remove('bg-white', 'shadow-sm', 'text-green-600');
-            listViewBtn.classList.add('text-gray-500');
-
-            uploadedGrid?.classList.remove('hidden');
-            uploadedList?.classList.add('hidden');
-            sharedGrid?.classList.remove('hidden');
-            sharedList?.classList.add('hidden');
-        });
-
-        listViewBtn.addEventListener('click', function () {
-            this.classList.add('bg-white', 'shadow-sm', 'text-green-600');
-            this.classList.remove('text-gray-500');
-            gridViewBtn.classList.remove('bg-white', 'shadow-sm', 'text-green-600');
-            gridViewBtn.classList.add('text-gray-500');
-
-            uploadedGrid?.classList.add('hidden');
-            uploadedList?.classList.remove('hidden');
-            sharedGrid?.classList.add('hidden');
-            sharedList?.classList.remove('hidden');
-        });
-
-        // Search Functionality
-        const searchInput = document.getElementById('searchInput');
-        searchInput.addEventListener('input', function () {
-            const searchTerm = this.value.toLowerCase();
-            const fileItems = document.querySelectorAll('.file-item');
-
-            fileItems.forEach(item => {
-                const fileName = item.dataset.filename?.toLowerCase() || '';
-                if (fileName.includes(searchTerm)) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
-    });
-</script>
-
+<script th:src="@{/js/file-list.js}"></script>
 </body>
 </html>

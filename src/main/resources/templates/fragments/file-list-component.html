@@ -47,11 +47,11 @@
 
         <!-- Grid View -->
         <div x-show="viewMode === 'grid'" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4  xl:grid-cols-6 gap-4">
-            <div th:each="folder : ${subFolders}" class="file-card" x-data="{ dropdownOpen: false, dropdownX: 0, dropdownY: 0 }">
-                <div class="folder-card-square cursor-pointer relative group transition-all duration-200"
+            <div th:each="folder : ${subFolders}" class="file-card" x-data="{ dropdownOpen: false }"
+                 @click.away="dropdownOpen = false">
+                <div class="folder-card-square cursor-pointer relative transition-all duration-200"
                     th:data-folder-id="${folder.id}" th:data-folder-name="${folder.name}"
-                    th:data-has-password="${folder.password != null and !folder.password.isEmpty()}"
-                    @contextmenu.prevent="dropdownOpen = true; dropdownX = $event.clientX; dropdownY = $event.clientY">
+                    th:data-has-password="${folder.password != null and !folder.password.isEmpty()}">
 
                     <!-- Folder Background Image -->
                     <div class="folder-icon"
@@ -93,17 +93,23 @@
                         Date
                     </div>
 
-                    <!-- Dropdown Menu (Right-click) -->
+                    <!-- Dropdown Toggle Button (Left-click) -->
+                    <button type="button"
+                            class="absolute top-2 left-2 w-7 h-7 bg-white/80 hover:bg-white rounded-full shadow-sm border border-gray-200 flex items-center justify-center z-10 transition-colors"
+                            @click.stop="dropdownOpen = !dropdownOpen">
+                        <i class="fas fa-ellipsis-v text-gray-500 text-xs"></i>
+                    </button>
+
+                    <!-- Dropdown Menu (Left-click) -->
                     <div x-show="dropdownOpen"
-                         @click.away="dropdownOpen = false"
                          x-transition:enter="transition ease-out duration-100"
                          x-transition:enter-start="opacity-0 scale-95"
                          x-transition:enter-end="opacity-100 scale-100"
                          x-transition:leave="transition ease-in duration-75"
                          x-transition:leave-start="opacity-100 scale-100"
                          x-transition:leave-end="opacity-0 scale-95"
-                         class="fixed w-36 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50"
-                         :style="`left: ${dropdownX}px; top: ${dropdownY}px; display: none;`">
+                         class="absolute top-10 left-2 w-36 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50"
+                         @click.stop>
 
                         <!-- Open Folder -->
                         <button @click="handleFolderClick($event.currentTarget.closest('[data-folder-id]').dataset.folderId, $event.currentTarget.closest('[data-folder-id]').dataset.folderName, $event.currentTarget.closest('[data-folder-id]').dataset.hasPassword); dropdownOpen = false"

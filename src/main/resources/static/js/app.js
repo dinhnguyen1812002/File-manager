@@ -389,6 +389,61 @@ function dashboardApp(initialDashboard) {
                 toast.style.opacity = '0';
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
+        },
+
+        async uploadFiles() {
+            const fileInput = document.getElementById('fileInput');
+            const folderIdInput = document.querySelector('input[name="folderId"]');
+            const files = fileInput?.files;
+
+            if (!files || files.length === 0) {
+                this.showToast('Please select files to upload', 'warning');
+                return;
+            }
+
+            const uploadProgress = document.getElementById('uploadProgress');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const uploadBtn = document.getElementById('uploadBtn');
+
+            if (uploadProgress) uploadProgress.classList.remove('hidden');
+            if (uploadBtn) {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Uploading...';
+            }
+
+            const formData = new FormData();
+            Array.from(files).forEach(file => formData.append('file', file));
+            const folderIdVal = folderIdInput?.value;
+            if (folderIdVal && folderIdVal !== 'null' && folderIdVal !== '') {
+                formData.append('folderId', folderIdVal);
+            }
+
+            try {
+                const response = await fetch('/files/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    this.showToast('Files uploaded successfully!', 'success');
+                    this.showUploadModal = false;
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    const error = await response.text();
+                    this.showToast('Upload failed: ' + error, 'error');
+                    if (uploadBtn) {
+                        uploadBtn.disabled = false;
+                        uploadBtn.textContent = 'Upload Files';
+                    }
+                }
+            } catch (error) {
+                this.showToast('Upload failed: ' + error.message, 'error');
+                if (uploadBtn) {
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Upload Files';
+                }
+            }
         }
     }
 }

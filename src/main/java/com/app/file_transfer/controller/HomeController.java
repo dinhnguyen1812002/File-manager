@@ -35,8 +35,5 @@ public String home(Model model, @AuthenticationPrincipal UserDetails userDetails
         return "upload";
     }
 
-    @GetMapping("/ticket")
-    public String tickets (){
-        return "tickets";
-    }
+
 }

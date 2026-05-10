@@ -7,21 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
-    <style>
-        .drag-over {
-            @apply border-green-500 bg-green-50;
-        }
-        .file-preview-item {
-            transition: all 0.3s ease;
-        }
-        .file-preview-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
-        .upload-progress {
-            transition: width 0.3s ease;
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
 </head>
 <body class="bg-gray-100 p-8">
 
@@ -121,23 +107,6 @@
     </div>
 </div>
 
-<!-- Custom Scrollbar Styles -->
-<style>
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 4px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-    }
-</style>
 
 <script>
     let selectedFiles = [];
